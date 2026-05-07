@@ -29,7 +29,6 @@ public class Professional {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
     private String phone;
@@ -41,9 +40,20 @@ public class Professional {
     @Column(name = "profile_picture_url")
     private String profilePictureUrl;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = OffsetDateTime.now();
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

@@ -1,15 +1,13 @@
 package com.apexlone.auraskill_api.service;
 
-import com.apexlone.auraskill_api.dto.ProfessionalRequestDTO;
-import com.apexlone.auraskill_api.dto.ProfessionalResponseDTO;
+import com.apexlone.auraskill_api.dto.ProfessionalRequest;
+import com.apexlone.auraskill_api.dto.ProfessionalResponse;
 import com.apexlone.auraskill_api.entity.Professional;
 import com.apexlone.auraskill_api.repository.ProfessionalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,46 +15,67 @@ public class ProfessionalService {
 
     private final ProfessionalRepository repository;
 
-    public List<ProfessionalResponseDTO> findAll() {
+    public ProfessionalResponse create(ProfessionalRequest request) {
+        Professional professional = Professional.builder()
+                .keycloakUserId(request.getKeycloakUserId())
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .dateOfBirth(request.getDateOfBirth())
+                .phone(request.getPhone())
+                .address(request.getAddress())
+                .bio(request.getBio())
+                .profilePictureUrl(request.getProfilePictureUrl())
+                .build();
+
+        return toResponse(repository.save(professional));
+    }
+
+    public List<ProfessionalResponse> findAll() {
         return repository.findAll()
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public ProfessionalResponseDTO create(ProfessionalRequestDTO dto) {
+    public ProfessionalResponse findById(Long id) {
+        Professional professional = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Professional not found"));
 
-        Professional professional = Professional.builder()
-                .keycloakUserId(UUID.randomUUID())
-                .fullName(dto.getFullName())
-                .email(dto.getEmail())
-                .dateOfBirth(dto.getDateOfBirth())
-                .phone(dto.getPhone())
-                .address(dto.getAddress())
-                .bio(dto.getBio())
-                .profilePictureUrl(dto.getProfilePictureUrl())
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
-                .build();
-
-        Professional saved = repository.save(professional);
-
-        return toResponse(saved);
+        return toResponse(professional);
     }
 
-    private ProfessionalResponseDTO toResponse(Professional professional) {
-        return ProfessionalResponseDTO.builder()
-                .id(professional.getId())
-                .keycloakUserId(professional.getKeycloakUserId())
-                .fullName(professional.getFullName())
-                .email(professional.getEmail())
-                .dateOfBirth(professional.getDateOfBirth())
-                .phone(professional.getPhone())
-                .address(professional.getAddress())
-                .bio(professional.getBio())
-                .profilePictureUrl(professional.getProfilePictureUrl())
-                .createdAt(professional.getCreatedAt())
-                .updatedAt(professional.getUpdatedAt())
+    public ProfessionalResponse update(Long id, ProfessionalRequest request) {
+        Professional professional = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Professional not found"));
+
+        professional.setFullName(request.getFullName());
+        professional.setEmail(request.getEmail());
+        professional.setDateOfBirth(request.getDateOfBirth());
+        professional.setPhone(request.getPhone());
+        professional.setAddress(request.getAddress());
+        professional.setBio(request.getBio());
+        professional.setProfilePictureUrl(request.getProfilePictureUrl());
+
+        return toResponse(repository.save(professional));
+    }
+
+    public void delete(Long id) {
+        repository.deleteById(id);
+    }
+
+    private ProfessionalResponse toResponse(Professional p) {
+        return ProfessionalResponse.builder()
+                .id(p.getId())
+                .keycloakUserId(p.getKeycloakUserId())
+                .fullName(p.getFullName())
+                .email(p.getEmail())
+                .dateOfBirth(p.getDateOfBirth())
+                .phone(p.getPhone())
+                .address(p.getAddress())
+                .bio(p.getBio())
+                .profilePictureUrl(p.getProfilePictureUrl())
+                .createdAt(p.getCreatedAt())
+                .updatedAt(p.getUpdatedAt())
                 .build();
     }
 }

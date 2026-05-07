@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface ProfessionalRepository extends JpaRepository<Professional, Long> {
 
-    Optional<Professional> findByKeycloakUserId(UUID keycloakUserId);
-
     Optional<Professional> findByEmail(String email);
+
+    Optional<Professional> findByKeycloakUserId(UUID keycloakUserId);
 }
