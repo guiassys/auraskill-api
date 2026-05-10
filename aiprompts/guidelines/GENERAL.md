@@ -17,7 +17,7 @@ This document outlines the general best practices to be followed by any AI agent
 8.  **Defensive & Secure Implementation:**
     *   Implement defensive coding practices to handle unexpected states and inputs.
     *   Ensure security measures are in place to prevent common vulnerabilities (e.g., SQL Injection, XSS).
-9.  **Configuration Files:** Do not use hardcoded parameters. All system configurations must be stored in dedicated configuration files.
+9.  **Configuration Files:** Do not use hardcoded parameters. All system configurations must be stored in dedicated configuration files, preferably utilizing `application.properties` for configurable values.
 10. **Compatibility Check:** Before proposing a solution, analyze the compatibility of the libraries defined in the `@/pom.xml` file.
 
 ## Environment
