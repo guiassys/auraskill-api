@@ -12,12 +12,12 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Passo 1: Baixa o código do repositório aura-api (onde está o seu Dockerfile)
       - name: Checkout API Code
         uses: actions/checkout@v4
+        with:
+          # Evita conflitos de permissão se o runner criou algo como root antes
+          clean: false
 
-      # Passo 2: Build da imagem Java (Maven) e reinicialização do container
-      # Adicionamos o --env-file para carregar as variáveis de banco e segurança
       - name: Build and Restart API Container
         run: |
           docker compose \
@@ -26,6 +26,5 @@ jobs:
             --project-directory . \
             up -d --build auraskill-api
 
-      # Passo 3: Limpeza de imagens antigas para não lotar o disco do WSL
       - name: Clean up old images
         run: docker image prune -f
