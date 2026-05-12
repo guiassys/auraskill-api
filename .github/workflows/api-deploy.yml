@@ -1,0 +1,29 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - hml
+
+jobs:
+  deploy:
+    name: Build and Deploy API
+    runs-on: self-hosted
+
+    steps:
+      # Passo 1: Baixa o código do repositório aura-api (onde está o seu Dockerfile)
+      - name: Checkout API Code
+        uses: actions/checkout@v4
+
+      # Passo 2: Build da imagem Java (Maven) e reinicialização do container
+      - name: Build and Restart API Container
+        run: |
+          docker compose \
+            -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
+            --project-directory . \
+            up -d --build auraskill-api
+
+      # Passo 3: Limpeza de imagens antigas para não lotar o disco do WSL
+      - name: Clean up old images
+        run: docker image prune -f
