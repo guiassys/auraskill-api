@@ -12,24 +12,23 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Passo 1: Baixa o código do repositório da API em uma pasta temporária chamada 'api-code'
+      # Passo 1: Checkout direto na raiz do workspace do Runner para evitar confusão de pastas
       - name: Checkout API Code
         uses: actions/checkout@v4
-        with:
-          path: api-code
-          clean: false
 
-      # Passo 2: Define a variável de ambiente para o Docker Compose e executa o build
+      # Passo 2: Define o contexto correto e aponta para o Compose da Infra
       - name: Build and Restart API Container
         run: |
-          export AURA_API_PATH="./api-code"
-          
+          export AURA_API_PATH="${{ github.workspace }}"
+
           docker compose \
             --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
-            -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
-            --project-directory . \
+            -f /home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/hml/docker-compose.yml \
+            --project-directory ${{ github.workspace }} \
             up -d --build auraskill-api
 
-      # Passo 3: Limpeza para manter o ambiente saudável
+      # Passo 3: Limpeza de cache e imagens antigas
       - name: Clean up old images
-        run: docker image prune -f
+        run: |
+          docker image prune -f
+          docker builder prune -f
