@@ -171,4 +171,5 @@ src/main/resources/db/migration
 
 Developed by Guilherme (guiassys)
 
-## test(1)
+## Test pipeline
+- 01 - Forcing github actions
