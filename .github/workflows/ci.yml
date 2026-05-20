@@ -63,11 +63,13 @@ jobs:
           
           # Caminho exato do workspace da infraestrutura no runner self-hosted
           INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
+          INFRA_COMMON_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/common"
 
-          # Executa o compose apontando para o ambiente correto (--no-deps garante o restart isolado da API)
+          # Adicionado o arquivo base (-f) para o Docker Compose encontrar a definição do auraskill-api
           docker compose \
             --env-file $INFRA_ENV_DIR/.env \
             --env-file $INFRA_ENV_DIR/secrets.env \
+            -f $INFRA_COMMON_DIR/docker-compose.base.yml \
             -f $INFRA_ENV_DIR/docker-compose.yml \
             up -d --build --force-recreate --no-deps auraskill-api
 
