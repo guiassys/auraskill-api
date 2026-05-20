@@ -15,19 +15,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // Melhor usar Customizer para garantir que pegue seu Bean
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // --- ADICIONE ESTAS LINHAS AQUI ---
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/webjars/**"
                         ).permitAll()
-                        // ----------------------------------
+
+                        // --- LIBERAÇÃO DO ACTUATOR PARA O HEALTHCHECK DO DOCKER ---
+                        .requestMatchers("/actuator/**").permitAll()
+                        // ----------------------------------------------------------
 
                         .anyRequest().authenticated()
                 )
