@@ -47,6 +47,39 @@ jobs:
       - name: Checkout API Code
         uses: actions/checkout@v4
 
+      # Configurar o ambiente Java 21 com cache do Maven ativo
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Executar Testes Automatizados via Maven
+      - name: Run Automated Tests
+        run: mvn clean test
+
+      # Descobrir a porta/IP do Sonar do ambiente e executar a Análise de Código Estático
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Caminho da Infra para ler o arquivo .env correto
+          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
+          
+          # Extrai os valores do respectivo arquivo .env de forma dinâmica
+          SONAR_PORT=$(grep -E '^SONAR_PORT=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2)
+          SONAR_HOST_IP=$(grep -E '^AURASKILL_HOST_IP=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2)
+          
+          echo "Enviando análise para o SonarQube em http://$SONAR_HOST_IP:$SONAR_PORT"
+          
+          # Executa o plugin do Sonar para Maven
+          mvn sonar:sonar \
+            -Dsonar.host.url=http://$SONAR_HOST_IP:$SONAR_PORT \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.projectKey=auraskill-api-${{ env.ENVIRONMENT }} \
+            -Dsonar.projectName="AuraSkill API (${{ env.ENVIRONMENT }})"
+
       # Passo 2: Criar o secrets.env contendo apenas o segredo de direito do Backend
       - name: Create Temporary Secrets File in Infra Directory
         run: |
