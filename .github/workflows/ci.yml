@@ -47,23 +47,13 @@ jobs:
       - name: Checkout API Code
         uses: actions/checkout@v4
 
-      # Passo 2: Criar o secrets.env com os valores REAIS do Backend e da infra para não quebrar o parse
-      # Escrever os dados aqui garante que o Spring Boot e o Postgres subam sem credenciais em branco
+      # Passo 2: Criar o secrets.env contendo apenas o segredo de direito do Backend
       - name: Create Temporary Secrets File in Infra Directory
         run: |
           INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
           
-          # Injeta os segredos reais vindo do GitHub Secrets do projeto do Backend
+          # Injeta secrets
           echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" > $INFRA_ENV_DIR/secrets.env
-          echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
-          echo "KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
-          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
-          echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
-          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
-          
-          # Placeholders do frontend apenas para o docker-compose não reclamar de variáveis nulas
-          echo "KEYCLOAK_CLIENT_SECRET=" >> $INFRA_ENV_DIR/secrets.env
-          echo "NEXTAUTH_SECRET=" >> $INFRA_ENV_DIR/secrets.env
 
       # Passo 3: Build e Restart do container da API
       # O export garante que o Docker Compose use o código recém-baixado do backend como contexto de build
