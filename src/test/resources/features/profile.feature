@@ -1,9 +1,11 @@
 Feature: Profile Management
 
-  Scenario: Create a new profile
+  Background:
     Given a professional with id 1 exists
+
+  Scenario: Create a new profile
     When I create a profile with the following details:
-      | professionalId | professionalTitle | professionalObjective |
+      | professionalId | professionalTitle   | professionalObjective   |
       | 1              | "Software Engineer" | "To build great things" |
     Then the profile is created successfully
     And the profile should have the title "Software Engineer"
@@ -16,7 +18,7 @@ Feature: Profile Management
   Scenario: Update a profile
     Given a profile with id 1 exists
     When I update the profile with id 1 with the following details:
-      | professionalTitle |
+      | professionalTitle          |
       | "Senior Software Engineer" |
     Then the profile is updated successfully
     And the profile should have the title "Senior Software Engineer"
