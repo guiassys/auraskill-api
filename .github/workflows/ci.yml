@@ -1,0 +1,94 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches:
+      - hml
+      - prd
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, hml, prd)'
+        required: true
+        default: 'hml'
+        type: choice
+        options:
+          - dev
+          - hml
+          - prd
+
+jobs:
+  deploy:
+    name: Build and Deploy API
+    runs-on: self-hosted
+
+    steps:
+      # Passo 0: Determinar o ambiente dinamicamente (dev, hml, prd)
+      - name: Determine Environment
+        id: set_environment
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> "$GITHUB_ENV"
+          else
+            case "${{ github.ref_name }}" in
+              "hml")
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
+                ;;
+              "prd")
+                echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
+                ;;
+              *)
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
+                ;;
+            esac
+          fi
+
+      # Passo 1: Baixa o código fonte da branch que disparou o evento (hml ou prd)
+      - name: Checkout API Code
+        uses: actions/checkout@v4
+
+      # Passo 2: Criar o secrets.env com os valores REAIS do Backend e da infra para não quebrar o parse
+      # Escrever os dados aqui garante que o Spring Boot e o Postgres subam sem credenciais em branco
+      - name: Create Temporary Secrets File in Infra Directory
+        run: |
+          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
+          
+          # Injeta os segredos reais vindo do GitHub Secrets do projeto do Backend
+          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" > $INFRA_ENV_DIR/secrets.env
+          echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
+          echo "KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
+          echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
+          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> $INFRA_ENV_DIR/secrets.env
+          
+          # Placeholders do frontend apenas para o docker-compose não reclamar de variáveis nulas
+          echo "KEYCLOAK_CLIENT_SECRET=" >> $INFRA_ENV_DIR/secrets.env
+          echo "NEXTAUTH_SECRET=" >> $INFRA_ENV_DIR/secrets.env
+
+      # Passo 3: Build e Restart do container da API
+      # O export garante que o Docker Compose use o código recém-baixado do backend como contexto de build
+      - name: Build and Restart API Container
+        run: |
+          export AURA_API_PATH="${{ github.workspace }}"
+          
+          # Caminho exato do workspace da infraestrutura no runner self-hosted
+          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
+
+          # Executa o compose apontando para o ambiente correto (--no-deps garante o restart isolado da API)
+          docker compose \
+            --env-file $INFRA_ENV_DIR/.env \
+            --env-file $INFRA_ENV_DIR/secrets.env \
+            -f $INFRA_ENV_DIR/docker-compose.yml \
+            up -d --build --force-recreate --no-deps auraskill-api
+
+      # Passo 4: Limpeza do arquivo secrets temporário por segurança
+      - name: Clean up temporary secrets
+        if: always()
+        run: |
+          rm -f /home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}/secrets.env
+
+      # Passo 5: Limpeza de imagens órfãs e cache de build para manter o disco saudável
+      - name: Clean up old images
+        run: |
+          docker image prune -f
+          docker builder prune -f
