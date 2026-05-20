@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16:///auraskill_test_db
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # ALTERADO: O Hibernate NÃO vai criar nada. Ele apenas aceitará o banco
+      # exatamente como o Flyway estruturar através dos scripts SQL.
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    user: test
+    password: test
+    clean-disabled: false
+    # REMOVIDO: locations customizado. O Flyway vai ler seus scripts normais
+    # de 'src/main/resources/db/migration' de forma natural e sequencial.
+    # REMOVIDO: baseline-on-migrate. Como o banco inicia 100% vazio e o Hibernate
+    # não se mete, o Flyway assume o controle do zero sem conflitos.
+
+  docker:
+    compose:
+      enabled: false
+
+logging:
+  level:
+    org.springframework: INFO
+    org.hibernate.SQL: ERROR
