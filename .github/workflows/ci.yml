@@ -67,15 +67,19 @@ jobs:
           # Caminho da Infra para ler o arquivo .env correto
           INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
           
-          # Extrai os valores do respectivo arquivo .env de forma dinâmica
-          SONAR_PORT=$(grep -E '^SONAR_PORT=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2)
-          SONAR_HOST_IP=$(grep -E '^AURASKILL_HOST_IP=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2)
+          # Extrai os valores removendo de forma explícita quebras de linha (\n) e retornos de carro (\r)
+          SONAR_PORT=$(grep -E '^SONAR_PORT=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2 | tr -d '\r\n')
+          SONAR_HOST_IP=$(grep -E '^AURASKILL_HOST_IP=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2 | tr -d '\r\n')
+          
+          # Remove espaços em branco extras caso existam
+          SONAR_PORT=$(echo "$SONAR_PORT" | xargs)
+          SONAR_HOST_IP=$(echo "$SONAR_HOST_IP" | xargs)
           
           echo "Enviando análise para o SonarQube em http://$SONAR_HOST_IP:$SONAR_PORT"
           
-          # Executa o plugin do Sonar para Maven
+          # Executa o plugin do Sonar para Maven passando a URL limpa entre aspas duplas
           mvn sonar:sonar \
-            -Dsonar.host.url=http://$SONAR_HOST_IP:$SONAR_PORT \
+            -Dsonar.host.url="http://$SONAR_HOST_IP:$SONAR_PORT" \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.projectKey=auraskill-api-${{ env.ENVIRONMENT }} \
             -Dsonar.projectName="AuraSkill API (${{ env.ENVIRONMENT }})"
