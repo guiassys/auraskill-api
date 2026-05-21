@@ -17,6 +17,11 @@ on:
           - hml
           - prd
 
+# Evita que execuções simultâneas no mesmo ambiente causem conflitos de arquivos no servidor
+concurrency:
+  group: deploy-${{ github.ref_name }}-${{ github.event.inputs.environment || 'push' }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Build and Deploy API
@@ -31,19 +36,19 @@ jobs:
             echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> "$GITHUB_ENV"
           else
             case "${{ github.ref_name }}" in
-              "hml")
-                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
-                ;;
-              "prd")
-                echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
-                ;;
-              *)
-                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
-                ;;
+              "hml") echo "ENVIRONMENT=hml" >> "$GITHUB_ENV" ;;
+              "prd") echo "ENVIRONMENT=prd" >> "$GITHUB_ENV" ;;
+              *)     echo "ENVIRONMENT=hml" >> "$GITHUB_ENV" ;;
             esac
           fi
 
-      # Passo 1: Baixa o código fonte da branch que disparou o evento (hml ou prd)
+      # Auxiliar: Define o caminho da infraestrutura após descobrir o ambiente
+      - name: Set Infra Paths
+        run: |
+          echo "INFRA_ENV_DIR=/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}" >> "$GITHUB_ENV"
+          echo "INFRA_COMMON_DIR=/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/common" >> "$GITHUB_ENV"
+
+      # Passo 1: Baixa o código fonte da branch que disparou o evento
       - name: Checkout API Code
         uses: actions/checkout@v4
 
@@ -64,20 +69,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          # Caminho da Infra para ler o arquivo .env correto
-          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
-          
-          # Extrai os valores removendo de forma explícita quebras de linha (\n) e retornos de carro (\r)
-          SONAR_PORT=$(grep -E '^SONAR_PORT=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2 | tr -d '\r\n')
-          SONAR_HOST_IP=$(grep -E '^AURASKILL_HOST_IP=' "$INFRA_ENV_DIR/.env" | cut -d'=' -f2 | tr -d '\r\n')
-          
-          # Remove espaços em branco extras caso existam
-          SONAR_PORT=$(echo "$SONAR_PORT" | xargs)
-          SONAR_HOST_IP=$(echo "$SONAR_HOST_IP" | xargs)
+          # Extrai os valores removendo quebras de linha e espaços
+          SONAR_PORT=$(grep -E '^SONAR_PORT=' "${{ env.INFRA_ENV_DIR }}/.env" | cut -d'=' -f2 | tr -d '\r\n' | xargs)
+          SONAR_HOST_IP=$(grep -E '^AURASKILL_HOST_IP=' "${{ env.INFRA_ENV_DIR }}/.env" | cut -d'=' -f2 | tr -d '\r\n' | xargs)
           
           echo "Enviando análise para o SonarQube em http://$SONAR_HOST_IP:$SONAR_PORT"
           
-          # Executa o plugin do Sonar para Maven passando a URL limpa entre aspas duplas
           mvn sonar:sonar \
             -Dsonar.host.url="http://$SONAR_HOST_IP:$SONAR_PORT" \
             -Dsonar.token=$SONAR_TOKEN \
@@ -87,34 +84,25 @@ jobs:
       # Passo 2: Criar o secrets.env contendo apenas o segredo de direito do Backend
       - name: Create Temporary Secrets File in Infra Directory
         run: |
-          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
-          
-          # Injeta secrets
-          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" > $INFRA_ENV_DIR/secrets.env
+          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" > "${{ env.INFRA_ENV_DIR }}/secrets.env"
 
       # Passo 3: Build e Restart do container da API
-      # O export garante que o Docker Compose use o código recém-baixado do backend como contexto de build
       - name: Build and Restart API Container
         run: |
           export AURA_API_PATH="${{ github.workspace }}"
           
-          # Caminho exato do workspace da infraestrutura no runner self-hosted
-          INFRA_ENV_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}"
-          INFRA_COMMON_DIR="/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/common"
-
-          # Adicionado o arquivo base (-f) para o Docker Compose encontrar a definição do auraskill-api
           docker compose \
-            --env-file $INFRA_ENV_DIR/.env \
-            --env-file $INFRA_ENV_DIR/secrets.env \
-            -f $INFRA_COMMON_DIR/docker-compose.base.yml \
-            -f $INFRA_ENV_DIR/docker-compose.yml \
+            --env-file "${{ env.INFRA_ENV_DIR }}/.env" \
+            --env-file "${{ env.INFRA_ENV_DIR }}/secrets.env" \
+            -f "${{ env.INFRA_COMMON_DIR }}/docker-compose.base.yml" \
+            -f "${{ env.INFRA_ENV_DIR }}/docker-compose.yml" \
             up -d --build --force-recreate --no-deps auraskill-api
 
       # Passo 4: Limpeza do arquivo secrets temporário por segurança
       - name: Clean up temporary secrets
         if: always()
         run: |
-          rm -f /home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}/secrets.env
+          rm -f "${{ env.INFRA_ENV_DIR }}/secrets.env"
 
       # Passo 5: Limpeza de imagens órfãs e cache de build para manter o disco saudável
       - name: Clean up old images
