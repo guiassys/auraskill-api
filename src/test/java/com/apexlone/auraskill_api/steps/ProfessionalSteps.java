@@ -46,7 +46,7 @@ public class ProfessionalSteps {
     public void a_professional_exists_in_the_system() {
         try {
             professionalRepository.deleteAllInBatch();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { System.out.println("Tabela ja limpa ou vazia."); }
 
         currentKeycloakUserId = UUID.randomUUID();
         currentEmail = "template_" + UUID.randomUUID() + "@test.com";

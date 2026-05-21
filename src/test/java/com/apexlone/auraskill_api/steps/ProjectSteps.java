@@ -47,7 +47,7 @@ public class ProjectSteps {
     public void a_professional_exists_to_own_the_project() {
         try {
             professionalRepository.deleteAllInBatch();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { System.out.println("Tabela ja limpa ou vazia."); }
 
         Professional professional = Professional.builder()
                 .keycloakUserId(UUID.randomUUID())
