@@ -47,7 +47,7 @@ public class RecentActivitySteps {
     public void a_professional_exists_to_own_the_recent_activity() {
         try {
             professionalRepository.deleteAllInBatch();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { System.out.println("Tabela ja limpa ou vazia."); }
 
         Professional professional = Professional.builder()
                 .keycloakUserId(UUID.randomUUID())

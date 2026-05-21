@@ -46,7 +46,7 @@ public class ProfileSteps {
     public void a_professional_with_id_exists(Long id) {
         try {
             professionalRepository.deleteAllInBatch();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { System.out.println("Tabela ja limpa ou vazia."); }
 
         Professional professional = Professional.builder()
                 .keycloakUserId(UUID.randomUUID())
