@@ -46,11 +46,11 @@ jobs:
       - name: Checkout API Code
         uses: actions/checkout@v4
 
-      # Auxiliar: Define os caminhos da infraestrutura de forma 100% dinâmica (Agora com workspace ativo)
+      # Auxiliar: Define os caminhos da infraestrutura de forma 100% dinâmica (Corrigido para 2 níveis)
       - name: Set Infra Paths
         run: |
-          # Sobe 3 níveis a partir de _work/aura-api/aura-api/ e aponta para a infra
-          INFRA_BASE="${{ github.workspace }}/../../../aura-infra/aura-infra/docker"
+          # Sobe 2 níveis a partir de _work/aura-api/aura-api/ para alcançar a pasta comum _work/
+          INFRA_BASE="${{ github.workspace }}/../../aura-infra/aura-infra/docker"
           
           echo "INFRA_ENV_DIR=$INFRA_BASE/${{ env.ENVIRONMENT }}" >> "$GITHUB_ENV"
           echo "INFRA_COMMON_DIR=$INFRA_BASE/common" >> "$GITHUB_ENV"
