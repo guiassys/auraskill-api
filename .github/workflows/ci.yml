@@ -42,15 +42,18 @@ jobs:
             esac
           fi
 
-      # Auxiliar: Define o caminho da infraestrutura após descobrir o ambiente
-      - name: Set Infra Paths
-        run: |
-          echo "INFRA_ENV_DIR=/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/${{ env.ENVIRONMENT }}" >> "$GITHUB_ENV"
-          echo "INFRA_COMMON_DIR=/home/guiassys/actions-runner/_work/aura-infra/aura-infra/docker/common" >> "$GITHUB_ENV"
-
-      # Passo 1: Baixa o código fonte da branch que disparou o evento
+      # Passo 1: Baixa o código fonte da branch que disparou o evento (Garante a criação do workspace)
       - name: Checkout API Code
         uses: actions/checkout@v4
+
+      # Auxiliar: Define os caminhos da infraestrutura de forma 100% dinâmica (Agora com workspace ativo)
+      - name: Set Infra Paths
+        run: |
+          # Sobe 3 níveis a partir de _work/aura-api/aura-api/ e aponta para a infra
+          INFRA_BASE="${{ github.workspace }}/../../../aura-infra/aura-infra/docker"
+          
+          echo "INFRA_ENV_DIR=$INFRA_BASE/${{ env.ENVIRONMENT }}" >> "$GITHUB_ENV"
+          echo "INFRA_COMMON_DIR=$INFRA_BASE/common" >> "$GITHUB_ENV"
 
       # Configurar o ambiente Java 21 com cache do Maven ativo
       - name: Set up JDK 21
